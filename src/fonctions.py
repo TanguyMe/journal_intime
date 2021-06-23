@@ -22,9 +22,6 @@ mycursor.execute("USE onlinediary;")
 def update_emotions(id_message, message):
     columns_emotion = 'id_message, nom_emotion, rate_emotion'
     classes = ['anger', 'fear', 'happy', 'love', 'sadness', 'surprise']
-    print(classes)
-    print('update' + message)
-    print(type(message))
     prep_message = preprocessing(message)
     predictions = model.predict_proba(prep_message)[0]
     for j in range(len(classes)):
@@ -36,20 +33,28 @@ def update_emotions(id_message, message):
                   f"AND id_message = {id_message}")
         mycursor.execute(update)
         mydb.commit()
-    # mydb.close()
 
 
-def create_message()
+def create_emotion(id_message, message):
+    columns_emotion = 'id_message, nom_emotion, rate_emotion'
+    classes = ['anger', 'fear', 'happy', 'love', 'sadness', 'surprise']
+    prep_message = preprocessing(message)
+    predictions = model.predict_proba(prep_message)[0]
+    for j in range(len(classes)):
+        rate = predictions[j]
+        emotion = classes[j]
+        add_in_database((id_message, emotion, rate), 'Emotion', columns_emotion)
 
 
 def add_in_database(list_to_add, table, columns):
-    add = (f"INSERT INTO {table}" 
-               f"({columns})"
+    add = (f"INSERT INTO {table} "
+               f"({columns}) "
                f"VALUES {list_to_add}")
-    try :
-        mycursor.execute(add)
-    except:
-        print(f"{list_to_add} est déjà présent dans la base {table}")
+    print(add)
+    # try:
+    mycursor.execute(add)
+    # except:
+    #     print(f"{list_to_add} est déjà présent dans la base {table}")
     mydb.commit()
 
 
