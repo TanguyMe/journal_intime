@@ -1,8 +1,5 @@
 /env
 /.idea
-/dump
-/modelNLP
-/data
 /__pycache__
 /.pytest_cache
 
