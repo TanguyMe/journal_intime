@@ -1,3 +1,5 @@
+"""Contains the functions used in the other files"""
+
 import mysql.connector
 from tensorflow import keras
 import joblib
@@ -7,6 +9,11 @@ from nltk.corpus import stopwords
 from emoji import demojize
 import re
 import sklearn
+# import sys
+# import os
+# print('cwd fct: ', os.getcwd())
+# print('path fct: ', sys.path)
+# print('file fct: ', __file__)
 
 # Connection to MySQL
 mydb = mysql.connector.connect(
@@ -20,10 +27,14 @@ mycursor.execute("USE onlinediary;")
 
 
 def update_emotions(id_message, message):
-    columns_emotion = 'id_message, nom_emotion, rate_emotion'
+    """"Given an id message and a message, compute emotions rates and update the emotion table."""
     classes = ['anger', 'fear', 'happy', 'love', 'sadness', 'surprise']
-    prep_message = preprocessing(message)
+    # Preprocesses and makes the prediction for the message
+    enc = load_enc()
+    prep_message = preprocessing(message, enc)
+    model = load_model()
     predictions = model.predict_proba(prep_message)[0]
+    # Update the emotion table for each emotion
     for j in range(len(classes)):
         rate = predictions[j]
         emotion = classes[j]
@@ -36,10 +47,15 @@ def update_emotions(id_message, message):
 
 
 def create_emotion(id_message, message):
+    """"Given an id message and a message, compute emotions rates and create rows in the emotion table."""
     columns_emotion = 'id_message, nom_emotion, rate_emotion'
     classes = ['anger', 'fear', 'happy', 'love', 'sadness', 'surprise']
-    prep_message = preprocessing(message)
+    # Preprocesses and makes the prediction for the message
+    enc = load_enc()
+    prep_message = preprocessing(message, enc)
+    model = load_model()
     predictions = model.predict_proba(prep_message)[0]
+    # Create the rows in emotion table for each emotion
     for j in range(len(classes)):
         rate = predictions[j]
         emotion = classes[j]
@@ -47,14 +63,16 @@ def create_emotion(id_message, message):
 
 
 def add_in_database(list_to_add, table, columns):
+    """Add a list of elements in the database given a list of elements to add, a table and the table columns to add."""
     add = (f"INSERT INTO {table} "
-               f"({columns}) "
-               f"VALUES {list_to_add}")
-    print(add)
-    # try:
-    mycursor.execute(add)
-    # except:
-    #     print(f"{list_to_add} est déjà présent dans la base {table}")
+           f"({columns}) "
+           f"VALUES {list_to_add}")
+    # Try to execute the query to add the given list to the columns' table
+    try:
+        mycursor.execute(add)
+    # If it doesn't work, print that the list is already existing in the table
+    except:
+        print(f"{list_to_add} est déjà présent dans la base {table}")
     mydb.commit()
 
 
@@ -69,7 +87,7 @@ def lemmatizer(text):
 
 
 def clean_str(texts):
-    # from nltk.corpus import stopwords
+    """Given a texts, remove special characters, replace contracted form and stopwords"""
 
     # Lowercasing
     texts = texts.str.lower()
@@ -100,14 +118,20 @@ def clean_str(texts):
     stopword.remove('not')
     stopword.remove('nor')
     stopword.remove('no')
-    texts = texts.apply(lambda x: ' '.join([word for word in x.split() if (word not in stopword and len(word) > 1 )]))
+    texts = texts.apply(lambda x: ' '.join([word for word in x.split() if (word not in stopword and len(word) > 1)]))
     return texts
 
 
-def preprocessing(text):
+def preprocessing(text, enc):
+    """Apply all the preprocessing (cleaning and encoding) for a given text"""
     return enc.transform(clean_str(pd.Series(lemmatizer(text))).values)
 
 
-model = joblib.load("../dump/model_forest.joblib")
-enc = joblib.load("../dump/tfidf_encoder.joblib")
+def load_model():
+    """Import the model to predict the emotions"""
+    return joblib.load("../dump/model_forest.joblib")
 
+
+def load_enc():
+    """Return the encoder to prepare the text"""
+    return joblib.load("../dump/tfidf_encoder.joblib")

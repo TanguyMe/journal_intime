@@ -1,4 +1,5 @@
-import pandas as pd
+"""Create the tables on sql using mysql"""
+
 import mysql.connector
 
 # Connection to MySQL
@@ -15,6 +16,8 @@ mycursor = mydb.cursor()
 mycursor.execute("CREATE DATABASE IF NOT EXISTS onlinediary;")
 mycursor.execute("USE onlinediary;")
 
+
+# Create table User
 mycursor.execute("""CREATE TABLE IF NOT EXISTS User (
                  id_user SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, 
                  nom VARCHAR(55), 
@@ -26,6 +29,7 @@ mycursor.execute("""CREATE TABLE IF NOT EXISTS User (
                  CONSTRAINT UC_User UNIQUE (prenom, nom, date_naissance, mail))
                  ENGINE = INNODB;""")
 
+# Create table Daily_message
 mycursor.execute("CREATE TABLE IF NOT EXISTS Daily_message("
                  "id_message MEDIUMINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
                  "id_user SMALLINT UNSIGNED NOT NULL, "
@@ -38,6 +42,7 @@ mycursor.execute("CREATE TABLE IF NOT EXISTS Daily_message("
                  "CONSTRAINT UC_Daily_message UNIQUE (id_user, date_message))"
                  "ENGINE = INNODB;")
 
+# Create table Emotion
 mycursor.execute("CREATE TABLE IF NOT EXISTS Emotion("
                  "id_message MEDIUMINT UNSIGNED NOT NULL, "
                  "nom_emotion VARCHAR(20), "
@@ -47,6 +52,3 @@ mycursor.execute("CREATE TABLE IF NOT EXISTS Emotion("
                  "  ON DElETE CASCADE"
                  "  ON UPDATE CASCADE)"
                  "ENGINE = INNODB;")
-
-
-
