@@ -1,7 +1,6 @@
 """Contains the functions used in the other files"""
 
 import mysql.connector
-from tensorflow import keras
 import joblib
 import pandas as pd
 from nltk.stem import WordNetLemmatizer
@@ -10,7 +9,7 @@ from emoji import demojize
 import re
 import sklearn
 # import sys
-# import os
+import os
 # print('cwd fct: ', os.getcwd())
 # print('path fct: ', sys.path)
 # print('file fct: ', __file__)
@@ -23,7 +22,59 @@ mydb = mysql.connector.connect(
 
 # Cursor initialization
 mycursor = mydb.cursor(buffered=True)
-mycursor.execute("USE onlinediary;")
+
+
+def create_test_db():
+    """Create and use database for test named testdbdiary with the same architecture as real database"""
+    # Drop database to have an empty one
+    mycursor.execute('DROP DATABASE IF EXISTS testdbdiary;')
+    # Test database creation
+    mycursor.execute("CREATE DATABASE IF NOT EXISTS testdbdiary;")
+    mycursor.execute("USE testdbdiary;")
+
+    # Create table User
+    mycursor.execute("""CREATE TABLE IF NOT EXISTS User (
+                     id_user SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+                     nom VARCHAR(55),
+                     prenom VARCHAR(55),
+                     date_naissance DATE,
+                     last_coaching DATE,
+                     adresse VARCHAR(55),
+                     mail VARCHAR(55),
+                     CONSTRAINT UC_User UNIQUE (prenom, nom, date_naissance, mail))
+                     ENGINE = INNODB;""")
+
+    # Create table Daily_message
+    mycursor.execute("CREATE TABLE IF NOT EXISTS Daily_message("
+                     "id_message MEDIUMINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
+                     "id_user SMALLINT UNSIGNED NOT NULL, "
+                     "text VARCHAR(280), "
+                     "date_message DATETIME, "
+                     "CONSTRAINT fk_user_daily_message FOREIGN KEY (id_user) "
+                     "  REFERENCES User(id_user)"
+                     "  ON DElETE CASCADE"
+                     "  ON UPDATE CASCADE,"
+                     "CONSTRAINT UC_Daily_message UNIQUE (id_user, date_message))"
+                     "ENGINE = INNODB;")
+
+    # Create table Emotion
+    mycursor.execute("CREATE TABLE IF NOT EXISTS Emotion("
+                     "id_message MEDIUMINT UNSIGNED NOT NULL, "
+                     "nom_emotion VARCHAR(20), "
+                     "rate_emotion FLOAT, "
+                     "CONSTRAINT fk_daily_message_emotions FOREIGN KEY (id_message) "
+                     "  REFERENCES Daily_message(id_message)"
+                     "  ON DElETE CASCADE"
+                     "  ON UPDATE CASCADE)"
+                     "ENGINE = INNODB;")
+
+
+# Use the test database if we are running Pytest, else use the true database
+if os.getcwd() == os.path.dirname(__file__) + '/test':
+    create_test_db()
+    # mycursor.execute("USE testdbdiary;")
+else:
+    mycursor.execute("Use onlinediary")
 
 
 def update_emotions(id_message, message):
@@ -129,9 +180,15 @@ def preprocessing(text, enc):
 
 def load_model():
     """Import the model to predict the emotions"""
-    return joblib.load("../dump/model_forest.joblib")
+    try:
+        return joblib.load("../dump/model_forest.joblib")
+    except FileNotFoundError:
+        return joblib.load("../../dump/model_forest.joblib")
 
 
 def load_enc():
     """Return the encoder to prepare the text"""
-    return joblib.load("../dump/tfidf_encoder.joblib")
+    try:
+        return joblib.load("../dump/tfidf_encoder.joblib")
+    except FileNotFoundError:
+        return joblib.load("../../dump/tfidf_encoder.joblib")

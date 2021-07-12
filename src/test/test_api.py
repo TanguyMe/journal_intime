@@ -43,48 +43,16 @@ mydb = mysql.connector.connect(
 
 # Cursor initialization
 mycursor = mydb.cursor(buffered=True)
-# Drop database to have an empty one
-mycursor.execute('DROP DATABASE IF EXISTS testdbdiary;')
-# Test database creation
-mycursor.execute("CREATE DATABASE IF NOT EXISTS testdbdiary;")
+# Use test database
 mycursor.execute("USE testdbdiary;")
-
-
-# Create table User
-mycursor.execute("""CREATE TABLE IF NOT EXISTS User (
-                 id_user SMALLINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, 
-                 nom VARCHAR(55), 
-                 prenom VARCHAR(55), 
-                 date_naissance DATE,
-                 last_coaching DATE, 
-                 adresse VARCHAR(55),
-                 mail VARCHAR(55),
-                 CONSTRAINT UC_User UNIQUE (prenom, nom, date_naissance, mail))
-                 ENGINE = INNODB;""")
-
-# Create table Daily_message
-mycursor.execute("CREATE TABLE IF NOT EXISTS Daily_message("
-                 "id_message MEDIUMINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY, "
-                 "id_user SMALLINT UNSIGNED NOT NULL, "
-                 "text VARCHAR(280), "
-                 "date_message DATETIME, "
-                 "CONSTRAINT fk_user_daily_message FOREIGN KEY (id_user) "
-                 "  REFERENCES User(id_user)"
-                 "  ON DElETE CASCADE"
-                 "  ON UPDATE CASCADE,"
-                 "CONSTRAINT UC_Daily_message UNIQUE (id_user, date_message))"
-                 "ENGINE = INNODB;")
-
-# Create table Emotion
-mycursor.execute("CREATE TABLE IF NOT EXISTS Emotion("
-                 "id_message MEDIUMINT UNSIGNED NOT NULL, "
-                 "nom_emotion VARCHAR(20), "
-                 "rate_emotion FLOAT, "
-                 "CONSTRAINT fk_daily_message_emotions FOREIGN KEY (id_message) "
-                 "  REFERENCES Daily_message(id_message)"
-                 "  ON DElETE CASCADE"
-                 "  ON UPDATE CASCADE)"
-                 "ENGINE = INNODB;")
+# Adding a user to the test database
+columns = 'nom, prenom, date_naissance, mail'
+values_to_add = ('Schmidt', 'Walter', '1999-09-19', 'WalSchmi@mail.com')
+mycursor.execute("INSERT INTO User"
+                 f"({columns})"
+                 f"VALUES {values_to_add}"
+                 )
+mydb.commit()
 
 
 def test_create_user():
@@ -116,8 +84,27 @@ def test_create_message_invalid():
                               'Il y a déjà un message aujourd\'hui, veuillez le modifier.'
 
 
+def test_read_message_content():
+    """Test displaying the messages"""
+    response = client.get("/user/1/read")
+    assert response.status_code == 200
+    assert response.json()[0][:3] == [1, 1, 'hello world']
+
+
+def test_update_message():
+    """Test updating message"""
+    response = client.put("/user/1/update?message=Goodbye world")
+    assert response.status_code == 200
+    assert response.json() == {'id_user': 1, 'message': 'Goodbye world'}
+
+
 def test_delete_user():
     """Test deleting the user"""
     response = client.delete("/coach/delete/1")
     assert response.status_code == 200
     assert response.json() == "L'utilisateur 1 a été supprimé"
+
+
+# Drop test database after we used it
+mycursor.execute('DROP DATABASE IF EXISTS testdbdiary;')
+mydb.commit()

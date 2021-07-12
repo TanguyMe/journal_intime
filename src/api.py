@@ -22,11 +22,11 @@ mydb = mysql.connector.connect(
 # Cursor initialization
 mycursor = mydb.cursor(buffered=True)
 
-
 # Use the test database if we are running Pytest, else use the true database
 if os.getcwd() == os.path.dirname(__file__) + '/test':
     mycursor.execute("USE testdbdiary;")
 else:
+    # create_test_db()
     mycursor.execute("Use onlinediary")
 
 
@@ -245,3 +245,12 @@ def get_emotion_global_personne(date_inf: datetime.datetime, date_supp: datetime
     AS t GROUP BY nom_emotion;"""
                      )
     return mycursor.fetchall()
+
+
+@app.delete("/coach/delete/message/{id_message}")
+def delete_message(id_message: int):
+    """Delete the message with the given id. Return a string saying which message has been deleted."""
+    mycursor.execute(f"""DELETE FROM Daily_message
+                        WHERE id_message = {id_message}""")
+    mydb.commit()
+    return f"Le message {id_message} a été supprimé"

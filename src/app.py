@@ -22,7 +22,7 @@ def check_integer(object_to_check):
     try:
         int(object_to_check)
         return True
-    except:
+    except ValueError:
         st.error('Veuillez rentrer un nombre !')
         return False
 
